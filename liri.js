@@ -68,7 +68,7 @@ function spotify(inputs) {
 
 function movie(inputs) {
 
-	var queryUrl = "http://www.omdbapi.com/?t=" + inputs + "&y=&plot=short&apikey=40e9cece";
+	var queryUrl = "http://www.omdbapi.com/?t=" + inputs + "&y=&plot=short&apikey=6b24dbb2";
 
 	request(queryUrl, function(error, response, body) {
 		if (!inputs){

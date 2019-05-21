@@ -2,149 +2,114 @@ require("dotenv").config();
 
 var keys = require("./keys.js");
 
-var command = process.argv[2];
-var argument = process.argv[3];
+
 var request = require('request');
-var bandsintown = require(bandsintown);
-var moment = require('moment');
-var fs = require("fs");
+var bandsintown = require('bandsintown');
 var Spotify = require('node-spotify-api');
-var spotify = new Spotify(keys.spotify);
+var fs = require('fs');
+var client = new Spotify(keys.Spotify);
+var input = process.argv;
+var action = input[2];
+var inputs = input[3];
 
-//command funcion
-function spotifySong() {
-    if (argument === undefined) {
-        argument = '"Hotel California" Eagels'
-    }
-    console.log('spotify this song' + argument);
-    spotify.search({
-        type: 'track',
-        query: argument,
-        limit: 1,
-    }, function (err, data) {
-        if (err) {
-            console.log('Error occured:' + err);
-        }
-        music = data.tracks.items[0];
-        console.log('
-        ${ music.name }
-        ${ 'Album ' + music.album.name }
-        ${ 'Artist: ' + music.album.artists[0].name }
-        ${ 'Song Sample: ' + music.preview_url }
-            , fs.appendFile('log.txt', '
-        ${ music.name } 
-        Album: ${ music.album.name }
-        Artist: ${ music.album.artists[0].name }
-        Song Sample: ${ music.preview_url }
+switch (action) {
+	case "my-bandsintown":
+	bandsintown(inputs);
+	break;
 
-                , function (err) {
-                    if (err) throw err
-                    console.log('saved to log.txt!');
-                },
-            )
-        )
-    }
-    )
-};
-function movieThis() {
-    if (argument === undefined) {
-        argument = 'Mr.Nobody'
-    }
-    console.log('movie this: ' + argument);
-    request(`http://www.omdbapi.com/?t=${argument}&y=&plot=short&apikey=trilogy`, function (error, response, body) {
+	case "spotify-this-song":
+	spotify(inputs);
+	break;
 
-        if (!error && response.statusCode === 200) {
-            console.log(`${JSON.parse(body).Title}
-       ${'Release Year'}: ${JSON.parse(body).Year}
-       ${'IMDB Rating'}: ${JSON.parse(body).imdbRating}
-       ${'Rotten Tomatoes Rating'}: ${JSON.parse(body).Ratings[1].Value}
-       ${'Origin Country'}: ${JSON.parse(body).Country}
-       ${'Available Languages'}: ${JSON.parse(body).Language}
-       ${'Plot'}: ${JSON.parse(body).Plot}
-        ${'Actors'}: ${JSON.parse(body).Actors}`);
-        }
-        fs.appendFile('log.txt', `
-${JSON.parse(body).Title}
-Release Year: ${JSON.parse(body).Year}
-IMDB Rating: ${JSON.parse(body).imdbRating}
-Rotten Tomatoes Rating: ${JSON.parse(body).Ratings[1].Value}
-Origin Country: ${JSON.parse(body).Country}
-Available Languages: ${JSON.parse(body).Language}
-Plot: ${JSON.parse(body).Plot}
-Actors: ${JSON.parse(body).Actors}
-                `, function (err) {
-                if (err) throw err;
-                console.log('Saved to log.txt!');
-            });
-    });
+	case "movie-this":
+	movie(inputs);
+	break;
+
+	case "do-what-it-says":
+	doit();
+	break;
 };
 
-function concertThis() {
-    bandsintown.getArtistEventList(argument).then(function (events) {
+function bandsintown(inputs) {
+	var params = {screen_name: inputs, count: 20};
+	
+		client.get('statuses/user_timeline', params, function(error, bands, response) {
+			if (!error) {
+				for (i = 0; i < bands.length; i ++){
+					console.log("Band: " + "'" + bands[i].text + "'" + " Created At: " + bands[i].created_at);
+				}
+			} else {
+				console.log(error);
+			}
+		});
 
-        console.log(`
-    ${'Band: ' + argument}
-    ${'Venue Name: ' + events[0].venue.name}
-    ${'Location: ' + events[1].formatted_location}
-    ${'Date: ' + moment(events[0].datetime).format('L')}`);
-        fs.appendFile('log.txt', `
-${argument}
-Venue Name: ${events[0].venue.name}
-Location: ${events[1].formatted_location}
-Date: ${moment(events[0].datetime).format('L')}
-`,
+}
 
-            function (err) {
-                if (err) throw err;
-                console.log('Saved to log.txt!');
-            });
-    });
+function spotify(inputs) {
+
+	var spotify = new Spotify(keys.spotifyKeys);
+		if (!inputs){
+        	inputs = 'Hotel California';
+    	}
+		spotify.search({ type: 'track', query: inputs }, function(err, data) {
+			if (err){
+	            console.log('Error occurred: ' + err);
+	            return;
+	        }
+
+	        var songInfo = data.tracks.items;
+	        console.log("Artist(s): " + songInfo[0].artists[0].name);
+	        console.log("Song Name: " + songInfo[0].name);
+	        console.log("Preview Link: " + songInfo[0].preview_url);
+	        console.log("Album: " + songInfo[0].album.name);
+	});
+}
+
+
+function movie(inputs) {
+
+	var queryUrl = "http://www.omdbapi.com/?t=" + inputs + "&y=&plot=short&apikey=40e9cece";
+
+	request(queryUrl, function(error, response, body) {
+		if (!inputs){
+        	inputs = 'Mr Nobody';
+    	}
+		if (!error && response.statusCode === 200) {
+
+		    console.log("Title: " + JSON.parse(body).Title);
+		    console.log("Release Year: " + JSON.parse(body).Year);
+		    console.log("IMDB Rating: " + JSON.parse(body).imdbRating);
+		    console.log("Rotten Tomatoes Rating: " + JSON.parse(body).Ratings[1].Value);
+		    console.log("Country: " + JSON.parse(body).Country);
+		    console.log("Language: " + JSON.parse(body).Language);
+		    console.log("Plot: " + JSON.parse(body).Plot);
+		    console.log("Actors: " + JSON.parse(body).Actors);
+		}
+	});
 };
 
-function doWhatItSays() {
-    if (action === "spotify-this-song") {
-        console.log("spotifying: " + whatItSaysArgument);
-        argument = whatItSaysArgument;
-        spotifySong(argument);
-    }
+function doit() {
+	fs.readFile('random.txt', "utf8", function(error, data){
+
+		if (error) {
+    		return console.log(error);
+  		}
+
+		// Then split it by commas (to make it more readable)
+		var dataArr = data.split(",");
+
+		// Each command is represented. Because of the format in the txt file, remove the quotes to run these commands. 
+		if (dataArr[0] === "spotify-this-song") {
+			var songcheck = dataArr[1].slice(1, -1);
+			spotify(songcheck);
+		} else if (dataArr[0] === "my-bands") {
+			var bandname = dataArr[1].slice(1, -1);
+			bandsintown(bandname);
+		} else if(dataArr[0] === "movie-this") {
+			var movie_name = dataArr[1].slice(1, -1);
+			movie(movie_name);
+		} 
+		
+  	});
+
 };
-
-
-// if/then logic tree
-
-if (command === "spotify-this-song") {
-    if (process.argv[3] === undefined) {
-        argument = `"Hotel California" Eagels`
-    }
-    spotifySong();
-}
-else if (command === "movie-this") {
-    movieThis();
-}
-else if (command === "concert-this") {
-    concertThis();
-}
-else if (command === "do-what-it-says") {
-    console.log('do what it says is activated')
-
-    fs.readFile("random.txt", "utf8", function (err, data) {
-        if (err) {
-            logOutput.error(err);
-        } else {
-            var randomArray = data.split(",");
-
-            action = randomArray[0];
-            whatItSaysArgument = randomArray[1];
-
-            console.log("randomArray: " + randomArray);
-            console.log("action: " + action)
-            console.log("argument" + whatItSaysArgument);
-
-            doWhatItSays(action, whatItSaysArgument)
-        }
-    });
-
-}
-    })
-}
-
